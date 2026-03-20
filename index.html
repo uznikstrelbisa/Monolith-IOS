@@ -1,18 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <title>Merch App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 15px;
+      background: #f5f5f5;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: white;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    button {
+      margin-top: 5px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      background: #4CAF50;
+      color: white;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>📅 Сегодня</h2>
-<ul id="list"></ul>
+<h2 id="today"></h2>
+
+<div id="list"></div>
 
 <h3>➕ Добавить магазин</h3>
-<input id="name" placeholder="Название">
+
+<input id="name" placeholder="Название магазина">
 <input id="address" placeholder="Адрес">
+
 <button onclick="addStore()">Добавить</button>
+
+<hr>
+
+<button onclick="exportData()">💾 Экспорт</button>
 
 <script>
 let stores = JSON.parse(localStorage.getItem("stores")) || [];
@@ -21,9 +67,19 @@ function save() {
   localStorage.setItem("stores", JSON.stringify(stores));
 }
 
+function formatDate() {
+  const now = new Date();
+
+  return "📅 " + now.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+}
+
 function daysSince(date) {
   if (!date) return 999;
-  return (new Date() - new Date(date)) / (1000*60*60*24);
+  return (new Date() - new Date(date)) / (1000 * 60 * 60 * 24);
 }
 
 function isAvailable(store) {
@@ -33,7 +89,7 @@ function isAvailable(store) {
 function getToday() {
   return stores
     .filter(isAvailable)
-    .sort((a,b) => daysSince(b.lastVisit) - daysSince(a.lastVisit))
+    .sort((a, b) => daysSince(b.lastVisit) - daysSince(a.lastVisit))
     .slice(0, 10);
 }
 
@@ -49,28 +105,50 @@ function addStore() {
 
   if (!name) return;
 
-  stores.push({ name, address, lastVisit: null });
+  stores.push({
+    name,
+    address,
+    lastVisit: null
+  });
+
   save();
   render();
+
+  // очистка полей
+  document.getElementById("name").value = "";
+  document.getElementById("address").value = "";
 }
 
 function render() {
+  document.getElementById("today").innerText = formatDate();
+
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  getToday().forEach((store, i) => {
-    const li = document.createElement("li");
+  getToday().forEach((store) => {
+    const li = document.createElement("div");
+    li.className = "card";
 
     li.innerHTML = `
       <b>${store.name}</b><br>
       ${store.address}<br>
       не был ${Math.floor(daysSince(store.lastVisit))} дн.<br>
       <button onclick="markVisited(${stores.indexOf(store)})">✅ Был</button>
-      <hr>
     `;
 
     list.appendChild(li);
   });
+}
+
+function exportData() {
+  const data = JSON.stringify(stores);
+  const blob = new Blob([data], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "stores.json";
+  a.click();
 }
 
 render();
